@@ -1,0 +1,69 @@
+name: 🤖 Tech Xəbər Botu
+
+on:
+  # Hər 6 saatdan bir avtomatik işlə
+  schedule:
+    - cron: '0 */6 * * *'   # UTC: 00:00, 06:00, 12:00, 18:00
+  # Əl ilə də başlatmaq üçün (GitHub → Actions → Run workflow)
+  workflow_dispatch:
+
+jobs:
+  run-bot:
+    name: Xəbər Taraması
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # seen_news.json-u commit etmək üçün
+
+    steps:
+      # 1. Kodu al
+      - name: 📥 Repo-nu checkout et
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # 2. Python qur
+      - name: 🐍 Python 3.11 qur
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      # 3. Asılılıqları yüklə
+      - name: 📦 Paketləri yüklə
+        run: pip install -r requirements.txt
+
+      # 4. .env faylı yarat (GitHub Secrets-dən)
+      - name: 🔑 .env faylı yarat
+        run: |
+          cat > .env << EOF
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}
+          GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}
+          SCAN_INTERVAL_HOURS=6
+          MIN_IMPORTANCE_SCORE=6
+          MAX_ARTICLES_PER_RUN=40
+          EOF
+
+      # 5. seen_news.json yoxdursa boş yarat
+      - name: 📋 seen_news.json yoxla
+        run: |
+          if [ ! -f seen_news.json ]; then
+            echo '{"seen_ids": []}' > seen_news.json
+            echo "seen_news.json yaradıldı (boş)"
+          else
+            echo "seen_news.json mövcuddur"
+          fi
+
+      # 6. Botu işlət (--test: bir tarama et, çıx)
+      - name: 🚀 Botu işlət
+        run: python main.py --test
+
+      # 7. Yenilənmiş seen_news.json-u repoya commit et
+      - name: 💾 seen_news.json-u saxla
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add seen_news.json
+          # Dəyişiklik yoxdursa commit etmə
+          git diff --staged --quiet || git commit -m "chore: seen_news.json yeniləndi [skip ci]"
+          git push

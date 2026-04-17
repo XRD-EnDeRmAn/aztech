@@ -3,7 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 from groq import Groq
 
-from config import GROQ_API_KEY, GROQ_MODEL_1, GROQ_MODEL_3, OPENROUTER_API_KEY, OPENROUTER_MODEL_2
+from config import GROQ_API_KEY, GROQ_MODEL_1, GROQ_MODEL_3, OPENROUTER_API_KEY, OPENROUTER_MODEL_2, OPENROUTER_MODEL_4
 from usage_memory import update_stats
 
 logger = logging.getLogger(__name__)
@@ -63,6 +63,7 @@ def _try_openrouter(model: str, system_prompt: str, user_prompt: str, provider_k
             headers={
                 "Authorization": f"Bearer {OPENROUTER_API_KEY}",
                 "Content-Type": "application/json",
+                "HTTP-Referer": "https://github.com/XRD-EnDeRmAn/aztech",
                 "X-Title": "AzTech Bot"
             },
             json={
@@ -77,22 +78,22 @@ def _try_openrouter(model: str, system_prompt: str, user_prompt: str, provider_k
         if resp.status_code == 200:
             update_stats(provider_key, resp.headers)
             return resp.json()["choices"][0]["message"]["content"].strip()
-        logger.warning(f"OpenRouter ({model}) xətası: {resp.status_code}")
+        logger.warning(f"OpenRouter ({model}) xətası: {resp.status_code} - {resp.text[:100]}")
         return None
     except Exception as e:
         logger.warning(f"OpenRouter istisna: {e}")
         return None
 
 def generate_with_fallback(system_prompt: str, user_prompt: str, model_choice: int = 1) -> str:
-    """Pilləli fallback mexanizmi (1 -> 2 -> 3)."""
+    """Pilləli fallback mexanizmi (1 -> 2 -> 3 -> 4)."""
     system_prompt += AZ_STRICT_RULE
 
     # İerarxiya: 
     # 1: GROQ_MODEL_1 (70B)
     # 2: OPENROUTER_MODEL_2 (12B)
     # 3: GROQ_MODEL_3 (8B)
+    # 4: OPENROUTER_MODEL_4 (7B - Mistral)
     
-    # Əgər seçim 1-dirsə (və ya yoxdursa) ardıcıllıqla yoxla
     if model_choice <= 1:
         res = _try_groq(GROQ_MODEL_1, system_prompt, user_prompt, "groq_1")
         if res: return res
@@ -103,11 +104,16 @@ def generate_with_fallback(system_prompt: str, user_prompt: str, model_choice: i
         if res: return res
         model_choice = 3 # Əgər alınmasa növbətiyə keç
 
-    if model_choice >= 3:
+    if model_choice == 3:
         res = _try_groq(GROQ_MODEL_3, system_prompt, user_prompt, "groq_3")
         if res: return res
+        model_choice = 4 # Əgər alınmasa növbətiyə keç
 
-    return "❌ Bütün API limitləri tükəndi. Lütfən bir qədər sonra yenidən yoxlayın."
+    if model_choice >= 4:
+        res = _try_openrouter(OPENROUTER_MODEL_4, system_prompt, user_prompt, "openrouter_4")
+        if res: return res
+
+    return "❌ Bütün API limitləri tükəndi (4 modelin hamısı uğursuz oldu). Lütfən bir qədər sonra yenidən yoxlayın."
 
 def process_command(command_type: str, article_info: dict, extra_args: str = "", article_id: str = "", model_choice: int = 1) -> str:
     """Müxtəlif əmrləri (/script, /short, /deep, /m) emal edir."""
@@ -131,29 +137,30 @@ def process_command(command_type: str, article_info: dict, extra_args: str = "",
             system_prompt = f"""Sən texnoloji YouTube/TikTok kanalının təqdimatçısısan. 
 Bu xəbər MÜTLƏQ HOOK (Videonun ilk diqqət çəkən qarmağı) olmalıdır ({seconds} saniyəlik).
 ŞƏRTLƏR:
-1. QƏTİYYƏN VƏ QƏTİYYƏN Salam vermə, "xoş gəldiniz" demə!
-2. Videoya birbaşa ən şok edici xəbərlə partlayış edərək giriş et. Məsələn: "Təsəvvür edin ki..." və ya "Discord hacklendi, həm də..." kimi.
-3. Çox sürətlə əsas məqamı vurğula, izləyicini həyəcanda saxla. Planda texniki terminləri sadələşdir.
-4. Mətni rəsmi dildə (robot kimi) deyil, tamamilə küçə dilinə yaxın, səmimi Azərbaycan YouTube üslubunda (Məsələn: "Bəs indi nolacaq?") yaz.
-Nəticədə 3-4 cümləlik çox axıcı, "wow" təsiri yaradan kəsintisiz danışıq mətnin olsun. Formal və sıxıcı başlıq falan yazma dərhal zombiləşdirici sözlər yaz.
+1. Mətnə BİRBAŞA olaraq ən şok edici xəbərlə partlayış edərək, hekayəyə gir. (Məsələn: "Təsəvvür edin ki..." və ya "Discord hacklendi, həm də..." kimi cümlələrlə başla).
+2. Girişdə heç bir salamlaşma və ya qarşılama sözlərindən istifadə etmədən, birbaşa hadisəni danışmağa başla.
+3. Çox sürətlə əsas məqamı vurğula, izləyicini həyəcanda saxla. Texniki terminləri sadələşdir.
+4. Mətni robot kimi deyil, səmimi Azərbaycan YouTube üslubunda (Məsələn: "Bəs indi nolacaq?") yaz.
+5. Mətnin sonuna (Qeyd, Nota, Xəbərdarlıq kimi) heç bir irad, şərh və ya əlavə söz yazma, sadəcə danışıq mətnini bitir.
+Nəticədə 3-4 cümləlik çox axıcı, "wow" təsiri yaradan kəsintisiz danışıq mətnin olsun. Səhnə, İzah və ya Başlıq kimi alt-tegləri qətiyyən əlavə etmə!
 """
         else:
             system_prompt = f"""Sən texnoloji YouTube/TikTok kanalının təqdimatçısısan.
 Bu, videonun ORTA hissəsindəki sıradakı {seconds} saniyəlik xəbərdir.
 ŞƏRTLƏR:
-1. QƏTİYYƏN Salam vermə, "xoş gəldiniz", "videomuza gəldiniz" demə! 
-2. Birbaşa "İndi isə sıradakı xəbərimizə keçək..." və ya "Rəqabət dünyasında isə fərqli bir olay var..." kimi axıcı bir keçidlə xəbərə başla.
-3. Detalları səmimi, sadə, dost məclisində danışırmışan kimi izah et ("bilməyənlər üçün xatırladım...").
-4. Mətnin sonunda öz çox sərt / məntiqli, oxuyucunu düşündürən bir fikrini ("Mənə qalsa, bu işin axırı çox pis bitəcək...") bildir.
+1. Mətnə BİRBAŞA "İndi isə sıradakı xəbərimizə keçək..." və ya "Rəqabət dünyasında isə fərqli bir olay var..." kimi axıcı bir keçidlə başla. Salamlaşmadan və qarşılamadan mətnə BİRBAŞA bu keçid cümləsi ilə gir.
+2. Detalları səmimi, sadə, dost məclisində danışırmışan kimi izah et ("bilməyənlər üçün xatırladım...").
+3. Mətnin sonunda öz çox sərt və ya məntiqli, oxuyucunu düşündürən bir fikrini ("Mənə qalsa, bu işin axırı çox pis bitəcək...") bildir.
+4. Mətnin sonuna (Qeyd, Nota, Xəbərdarlıq kimi) heç bir irad, şərh və ya əlavə söz yazma.
 Format olaraq tam oxunmağa hazır, cəlbedici bir ssenari mətnini Azərbaycan dilində təqdim et. Heç bir "Səhnə" və ya "Qısa izah" kimi alt-teglərdən istifadə etmə, sadəcə danışıq mətnini kəsintisiz yaz. Yutuberlər mətnlərini belə oxuyur.
 """
     elif command_type == "short":
         system_prompt = """Sən sosial media menecerisən. Verilmiş xəbər üçün diqqət çəkən Instagram/Telegram postu hazırla. 
-Mətn yalnız 1-3 cümlə olmalı və çox cəlbedici olmalıdır. Axırda bir uyğun emoji əlavə et. Uzun hekayələr yazma.
+Mətn yalnız 1-3 cümlə olmalı və çox cəlbedici olmalıdır. Axırda bir uyğun emoji əlavə et. Uzun hekayələr və ya qeydlər yazma.
 """
     elif command_type == "deep":
         system_prompt = """Sən baş texnoloji analitiksən. Verilmiş xəbərin texnologiya, biznes və bəşəriyyət üçün nə anlama gəldiyini 
-dərin analiz et. Səbəb-nəticə əlaqələri qur və izah et. Xülasə yox, ətraflı hesabat yaz. Dil: Azərbaycan dili.
+dərin analiz et. Səbəb-nəticə əlaqələri qur və izah et. Xülasə yox, ətraflı hesabat yaz. Mətnin sonuna heç bir (Qeyd, Nota) əlavə etmə. Dil: Azərbaycan dili.
 """
     else:
         return "❌ Naməlum komanda."

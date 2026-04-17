@@ -18,9 +18,11 @@ OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "")
 # 1) Llama 3.3 70B (Ən ağıllı, kiçik limit)
 # 2) Gemma 3 12B (Orta ağıllı, OpenRouter)
 # 3) Llama 3.1 8B (Sürətli, böyük limit)
+# 4) Mistral 7B (Ehtiyat üçün pulsuz, OpenRouter)
 GROQ_MODEL_1: str    = "llama-3.3-70b-versatile"
 OPENROUTER_MODEL_2: str = "google/gemma-3-12b-it:free"
 GROQ_MODEL_3: str    = "llama-3.1-8b-instant"
+OPENROUTER_MODEL_4: str = "mistralai/mistral-7b-instruct:free"
 
 # Default olaraq hansından başladılsın (1-ci model)
 GROQ_MODEL: str = GROQ_MODEL_1

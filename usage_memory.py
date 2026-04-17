@@ -46,5 +46,6 @@ def load_stats() -> dict:
     return {
         "groq_1": {"remaining_req": "N/A", "remaining_tokens": "N/A", "reset_in": "N/A", "last_update": "N/A"},
         "openrouter_2": {"status": "Məlumat yoxdur", "last_update": "N/A"},
-        "groq_3": {"remaining_req": "N/A", "remaining_tokens": "N/A", "reset_in": "N/A", "last_update": "N/A"}
+        "groq_3": {"remaining_req": "N/A", "remaining_tokens": "N/A", "reset_in": "N/A", "last_update": "N/A"},
+        "openrouter_4": {"status": "Məlumat yoxdur", "last_update": "N/A"}
     }

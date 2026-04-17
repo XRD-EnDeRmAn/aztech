@@ -93,15 +93,21 @@ def handle_article_command(command: str, args: list, chat_id: int):
 
 def handle_limit_command():
     from telegram_bot import _send_message
-    # Qeyd: Groq API-nin dəqiq balansı üçün API requestlərini tutub oxumaq lazımdır, amma asan üsul ümumi məlumat verməkdir.
-    text = """📊 <b>Süni İntellekt API Limitləri</b>
+    text = """
+📊 <b>API Servislərinin Limitləri (Free Tier)</b>
+<i>Qeyd: Bu canlı sayğac deyil, sadəcə qlobal limitləri xatırladır.</i>
 
-<b>Groq AI (Pulsuz Təbəqə)</b>
-- Hesablanmış Limit: Dəqiqədə ~30 Sorğu
-- Günlük Limit: 14,400 Sorğu / 500,000 Token
-- Status: Aktiv 🟢
+🟢 <b>Groq AI (Llama 3.3 70B & DeepSeek)</b>
+- <b>Sürət:</b> Dəqiqədə 30 Sorğu
+- <b>Günlük Limit:</b> 14,400 Sorğu / 500,000 Token
+- <b>Status:</b> Əsas model ⭐
 
-<i>* Əgər xəbər detalı /script və ya digər spesifik müraciətlərdə yuxarıdakı hədlər aşılsa ("Rate Limit") sistem avtomatik olaraq OpenRouter API istifadə edəcək.</i>
+🟡 <b>OpenRouter (Gemma 3 / Mistral)</b>
+- <b>Sürət:</b> Dəqiqədə ~20 Sorğu
+- <b>Kredit:</b> $0.00 Limitli pulsuz modellər üçün
+- <b>Status:</b> Ehtiyat (Fallback) 🛡️
+
+<i>* Məlumat: Əgər xəbər detallandırarkən "/script" yazdıqda gecikmə və ya xəta alırsınızsa, sistem böyük ehtimalla birinci modeli (Groq) doldurub və ehtiyat varianta (OpenRouter) keçid edir.</i>
 """
     _send_message(text)
 

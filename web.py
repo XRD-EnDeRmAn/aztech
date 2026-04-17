@@ -93,21 +93,23 @@ def handle_article_command(command: str, args: list, chat_id: int):
 
 def handle_limit_command():
     from telegram_bot import _send_message
-    text = """
-📊 <b>API Servislərinin Limitləri (Free Tier)</b>
-<i>Qeyd: Bu canlı sayğac deyil, sadəcə qlobal limitləri xatırladır.</i>
+    from usage_memory import load_stats
+    s = load_stats()
+    
+    text = f"""
+📊 <b>API Canlı Limit Vəziyyəti</b>
 
-🟢 <b>Groq AI (Llama 3.3 70B & DeepSeek)</b>
-- <b>Sürət:</b> Dəqiqədə 30 Sorğu
-- <b>Günlük Limit:</b> 14,400 Sorğu / 500,000 Token
-- <b>Status:</b> Əsas model ⭐
+🟢 <b>Groq AI (Əsas)</b>
+- <b>Qalan Sorğu:</b> {s['groq']['remaining_req']}
+- <b>Qalan Token:</b> {s['groq']['remaining_tokens']}
+- <b>Sıfırlanma vaxtı:</b> {s['groq']['reset_in']}
+- <b>Son yenilənmə:</b> {s['groq']['last_update']}
 
-🟡 <b>OpenRouter (Gemma 3 / Mistral)</b>
-- <b>Sürət:</b> Dəqiqədə ~20 Sorğu
-- <b>Kredit:</b> $0.00 Limitli pulsuz modellər üçün
-- <b>Status:</b> Ehtiyat (Fallback) 🛡️
+🟡 <b>OpenRouter (Ehtiyat)</b>
+- <b>Status:</b> {s['openrouter']['status']}
+- <b>Son yenilənmə:</b> {s['openrouter']['last_update']}
 
-<i>* Məlumat: Əgər xəbər detallandırarkən "/script" yazdıqda gecikmə və ya xəta alırsınızsa, sistem böyük ehtimalla birinci modeli (Groq) doldurub və ehtiyat varianta (OpenRouter) keçid edir.</i>
+<i>* Məlumat: Bu rəqəmlər hər uğurlu AI müraciətindən sonra avtomatik yenilənir. Əgər hər iki servis sıfıra düşərsə, bot xəta verəcək.</i>
 """
     _send_message(text)
 

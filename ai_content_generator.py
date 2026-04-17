@@ -3,12 +3,15 @@ import requests
 from bs4 import BeautifulSoup
 from groq import Groq
 
-from config import GROQ_API_KEY, GROQ_MODEL, OPENROUTER_API_KEY
+from usage_memory import update_stats
 
 logger = logging.getLogger(__name__)
 
 # Müştərilər
 groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
+
+# Dil Qaydası (Promptlara yapışdırılacaq)
+AZ_STRICT_RULE = "\nMÜHÜM: Mətn yalnız təmiz Azərbaycan dilində olmalıdır. Qətiyyən Türk dili (örnək: 'yama' yerinə 'yamaq'), İndoneziya dili (örnək: 'tidak') və ya digər dillərdən sözlər qarışdırma. Əgər texniki termin varsa, onu ən uyğun Azərbaycan qarşılığı ilə de və ya olduğu kimi saxla, amma başqa dildəki qrammatikanı istifadə etmə."
 
 def fetch_article_text(url: str) -> str:
     """URL-dən mətn məzmununu çəkir."""
@@ -34,10 +37,14 @@ def fetch_article_text(url: str) -> str:
 def generate_with_fallback(system_prompt: str, user_prompt: str) -> str:
     """Groq ilə mətni yaradır, alınmazsa (Məsələn Rate Limit) OpenRouter ilə yoxlayır."""
     
+    # Dil qaydasını sistem promptuna əlavə edirik
+    system_prompt += AZ_STRICT_RULE
+
     # 1. Groq sınağı
     if groq_client:
         try:
-            response = groq_client.chat.completions.create(
+            # groq-python client-də headers-i almaq üçün raw response istifadə edirik
+            completion = groq_client.chat.completions.with_raw_response.create(
                 model=GROQ_MODEL,
                 messages=[
                     {"role": "system", "content": system_prompt},
@@ -46,6 +53,8 @@ def generate_with_fallback(system_prompt: str, user_prompt: str) -> str:
                 temperature=0.7,
                 max_tokens=4096,
             )
+            update_stats("groq", completion.headers)
+            response = completion.parse()
             return response.choices[0].message.content.strip()
         except Exception as e:
             logger.warning(f"Groq xətası (Fallback aktivləşdirilir...): {e}")
@@ -61,20 +70,28 @@ def generate_with_fallback(system_prompt: str, user_prompt: str) -> str:
                     "Content-Type": "application/json"
                 },
                 json={
-                    "model": "google/gemma-3-12b-it:free", # Pulsuz, çoxdilli, böyük limitli model
+                    "model": "google/gemma-3-12b-it:free", 
                     "messages": [
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt}
                     ]
                 },
-                timeout=30
+                timeout=40
             )
-            resp.raise_for_status()
+            update_stats("openrouter", resp.headers)
+            
+            if resp.status_code != 200:
+                return f"❌ OpenRouter Xətası ({resp.status_code}): {resp.text[:200]}"
+                
             data = resp.json()
-            return data["choices"][0]["message"]["content"].strip()
+            if "choices" in data:
+                return data["choices"][0]["message"]["content"].strip()
+            else:
+                return f"❌ OpenRouter gözlənilməz cavab: {data}"
+                
         except Exception as e:
             logger.error(f"OpenRouter xətası: {e}")
-            return "❌ Həm Groq, həm də OpenRouter limitləri aşıldı və ya xəta baş verdi."
+            return f"❌ Həm Groq, həm də OpenRouter xətası: {str(e)}"
             
     return "❌ Groq API xəta verdi və OpenRouter API Key daxil edilməyib."
 

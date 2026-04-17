@@ -81,7 +81,7 @@ def handle_article_command(command: str, args: list, chat_id: int):
     
     # AI Process uzun cəkə bilər deyə background thread-də işlədək ki, Webhook timeout olmasın
     def process_and_send():
-        result = process_command(command, article_info, extra_args)
+        result = process_command(command, article_info, extra_args, article_id)
         # Mesaj uzun ola bilər, əgər 4000 limitini aşarsa
         if len(result) > 4000:
             for i in range(0, len(result), 4000):

@@ -78,7 +78,7 @@ def generate_with_fallback(system_prompt: str, user_prompt: str) -> str:
             
     return "❌ Groq API xəta verdi və OpenRouter API Key daxil edilməyib."
 
-def process_command(command_type: str, article_info: dict, extra_args: str = "") -> str:
+def process_command(command_type: str, article_info: dict, extra_args: str = "", article_id: str = "") -> str:
     """Müxtəlif əmrləri (/script, /short, /deep, /m) emal edir."""
     
     url = article_info["link"]
@@ -91,24 +91,31 @@ def process_command(command_type: str, article_info: dict, extra_args: str = "")
     user_prompt = f"Başlıq: {title}\n\nMəzmun:\n{content}"
     
     if command_type in ["script", "m"]:
-        # Saniyə arqumentini çıxarmaq
         seconds = "60-120"
         if extra_args.isdigit():
             seconds = extra_args
-            
-        system_prompt = f"""Sən peşəkar video məzmun yaradıcısan. Bu xəbər əsasında Youtube/TikTok vizual videosu üçün {seconds} saniyəlik Azərbaycan dilində cəlbedici danışıq mətni (ssenari) hazırla. 
-MÜHÜM ŞƏRT — Danışıq üslubun aşağıdakı xüsusiyyətlərə tam uyğun olmalıdır:
-- Təbii, axıcı və səmimi bir "tech-YouTuber" kimi danış ("Texnologiya raporunun yeni bölümünə xoş gəldiniz" tipli girişlər ola bilər).
-- Xəbəri sadəcə quru oxuma; xəbərin arxa planını, "bilməyənlər üçün xatırladaq" kimi ifadələrlə qısa məzmununu ver.
-- Öz şəxsi, məntiqli analizini və "mənə qalsa", "bəncə", "açığı məni təəccübləndirdi" kimi rəylərini qat.
-- Böyük şirkətlərin (Big Tech) və ya sistemlərin atdığı addımlara bir az tənqidi, oxuyucunu düşündürən bir tərzlə yanaş. ("Yəni bunun axırı hara gedir" tərzində).
-- Keçidləri axıcı et ("İndi gəlin süni intellekt tərəfindəki xəbərə keçək", "Burada ilginç bir detal var" və s.).
 
-Format:
-- 📌 Əsas hadisənin qısa izahı
-- 💡 Vacib faktlar və detallar
-- 🎙️ Videoda istifadə üçün tam Youtuber üslubunda danışıq mətni (Mətn [Səhnə 1], [Səhnə 2] kimi hissələrə bölünmüş olsun).
-Nəticə təbii, qüsursuz və səlis Azərbaycan dilində (Azərbaycan ləhcəsində) olmalıdır.
+        # HOOK Ssenarisi (ID = 0)
+        if article_id == "0":
+            system_prompt = f"""Sən texnoloji YouTube/TikTok kanalının təqdimatçısısan. 
+Bu xəbər MÜTLƏQ HOOK (Videonun ilk diqqət çəkən qarmağı) olmalıdır ({seconds} saniyəlik).
+ŞƏRTLƏR:
+1. QƏTİYYƏN VƏ QƏTİYYƏN Salam vermə, "xoş gəldiniz" demə!
+2. Videoya birbaşa ən şok edici xəbərlə partlayış edərək giriş et. Məsələn: "Təsəvvür edin ki..." və ya "Discord hacklendi, həm də..." kimi.
+3. Çox sürətlə əsas məqamı vurğula, izləyicini həyəcanda saxla. Planda texniki terminləri sadələşdir.
+4. Mətni rəsmi dildə (robot kimi) deyil, tamamilə küçə dilinə yaxın, səmimi Azərbaycan YouTube üslubunda (Məsələn: "Bəs indi nolacaq?") yaz.
+Nəticədə 3-4 cümləlik çox axıcı, "wow" təsiri yaradan kəsintisiz danışıq mətnin olsun. Formal və sıxıcı başlıq falan yazma dərhal zombiləşdirici sözlər yaz.
+"""
+        # NORMAL Ssenari (ID != 0)
+        else:
+            system_prompt = f"""Sən texnoloji YouTube/TikTok kanalının təqdimatçısısan.
+Bu, videonun ORTA hissəsindəki sıradakı {seconds} saniyəlik xəbərdir.
+ŞƏRTLƏR:
+1. QƏTİYYƏN Salam vermə, "xoş gəldiniz", "videomuza gəldiniz" demə! 
+2. Birbaşa "İndi isə sıradakı xəbərimizə keçək..." və ya "Rəqabət dünyasında isə fərqli bir olay var..." kimi axıcı bir keçidlə xəbərə başla.
+3. Detalları səmimi, sadə, dost məclisində danışırmışan kimi izah et ("bilməyənlər üçün xatırladım...").
+4. Mətnin sonunda öz çox sərt / məntiqli, oxuyucunu düşünməyə sövq edən fikrini ("Mənə qalsa, bu işin axırı çox pis bitəcək...") bildir.
+Format olaraq tam oxunmağa hazır, cəlbedici bir ssenari mətnini Azərbaycan dilində təqdim et. Heç bir "Səhnə" və ya "Qısa izah" kimi alt-teglərdən istifadə etmə, sadəcə danışıq mətnini kəsintisiz yaz. Yutuberlər mətnlərini belə oxuyur.
 """
     elif command_type == "short":
         system_prompt = """Sən sosial media menecerisən. Verilmiş xəbər üçün diqqət çəkən Instagram/Telegram postu hazırla. 

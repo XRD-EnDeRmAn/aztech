@@ -22,7 +22,7 @@ import requests
 
 from config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, CATEGORIES
 from ai_processor import group_by_category
-from news_memory import add_news_to_map
+from news_memory import assign_batch_ids
 
 logger = logging.getLogger(__name__)
 
@@ -81,8 +81,7 @@ def _format_category_block(category_key: str, articles: list[dict]) -> str:
         importance = art.get("importance", 0)
         stars = "⭐" * min(importance // 3, 3)  # max 3 ulduz
         
-        # ID yaradılır / götürülür
-        art_id = add_news_to_map(art)
+        art_id = art["bot_id"]
 
         lines.append(f"📌 <b>[{art_id}] {art['title_az']}</b>")
         if art.get("summary_az"):
@@ -126,6 +125,13 @@ def send_news_digest(articles: list[dict]) -> int:
     if not articles:
         logger.info("Göndəriləcək xəbər yoxdur.")
         return 0
+
+    # Ən vacib (highest importance) xəbəri ən qabağa salmaq üçün ümumi sort.
+    # Onsuz da group olunanda importance sırası ilə gəlməlidir, lakin qaranti verək.
+    articles.sort(key=lambda x: x.get("importance", 0), reverse=True)
+    
+    # 0, 1, 2, ... deyə ID təyin et (0 = Hook)
+    assign_batch_ids(articles)
 
     grouped = group_by_category(articles)
 

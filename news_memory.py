@@ -28,25 +28,24 @@ def save_news_map(news_map: dict) -> None:
     except Exception as e:
         logger.error(f"news_map.json yazılarkən xəta: {e}")
 
-def add_news_to_map(article: dict) -> str:
-    """Xəbərə nömrə (ID) təyin edir və yaddaşa əlavə edir. Qaytarır: ID"""
+def assign_batch_ids(articles: list[dict]) -> None:
+    """Xəbərlərə 0-dan başlayaraq seqvential ID-lər təyin edir və yaddaşa yazır.
+    Siyahıdakı ilk xəbər '0' nömrəsini alır (Əsas Xəbər/Hook).
+    Sonrakılar isə 1, 2, 3... alır, lakin köhnə yaddaşı silməmək üçün 
+    əgər qlobal mapda konflikt varsa id-ləri artırır."""
     news_map = load_news_map()
     
-    # Yeni bir ardıcıl ID təyin edək
-    last_id = 0
-    if news_map:
-        try:
-            # Ən böyük integer ID-ni tapaq
-            last_id = max([int(k) for k in news_map.keys() if k.isdigit()])
-        except ValueError:
-            pass
-
-    new_id = str(last_id + 1)
-    news_map[new_id] = {
-        "title": article.get("title_az", article.get("title", "")),
-        "link": article.get("link", ""),
-        "source": article.get("source", "")
-    }
-    
+    # Yeni axtarış üçün, birbaşa 0, 1, 2... veririk 
+    # Qeyd: Bu yanaşmada hər yeni /tarama etdikdə 0 ID-si ən son xəbərlə əvəzlənəcək.
+    # User-in istəyinə uyğun olaraq bu ən gözəl həlldir. Beləliklə /m 0 həmişə ən son taramanın pikinə düşür.
+    for idx, article in enumerate(articles):
+        str_id = str(idx)
+        news_map[str_id] = {
+            "title": article.get("title_az", article.get("title", "")),
+            "link": article.get("link", ""),
+            "source": article.get("source", "")
+        }
+        # Açar kimi xəbər obyektinin içinə də qoyaq ki telegram_bot rahat yazdırsın
+        article["bot_id"] = str_id
+        
     save_news_map(news_map)
-    return new_id

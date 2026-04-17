@@ -61,7 +61,7 @@ def generate_with_fallback(system_prompt: str, user_prompt: str) -> str:
                     "Content-Type": "application/json"
                 },
                 json={
-                    "model": "google/gemini-2.5-pro", # Yaxud openrouter-dəki istədiyiniz model
+                    "model": "google/gemma-3-12b-it:free", # Pulsuz, çoxdilli, böyük limitli model
                     "messages": [
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt}

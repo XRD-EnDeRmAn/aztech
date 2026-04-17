@@ -22,6 +22,7 @@ import requests
 
 from config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, CATEGORIES
 from ai_processor import group_by_category
+from news_memory import add_news_to_map
 
 logger = logging.getLogger(__name__)
 
@@ -79,8 +80,11 @@ def _format_category_block(category_key: str, articles: list[dict]) -> str:
     for art in articles:
         importance = art.get("importance", 0)
         stars = "⭐" * min(importance // 3, 3)  # max 3 ulduz
+        
+        # ID yaradılır / götürülür
+        art_id = add_news_to_map(art)
 
-        lines.append(f"📌 <b>{art['title_az']}</b>")
+        lines.append(f"📌 <b>[{art_id}] {art['title_az']}</b>")
         if art.get("summary_az"):
             lines.append(f"📝 {art['summary_az']}")
         lines.append(

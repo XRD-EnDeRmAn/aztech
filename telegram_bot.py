@@ -15,7 +15,7 @@ Mesaj formatı (örnek.md-ə uyğun):
 """
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from urllib.parse import urlparse
 
 import requests
@@ -145,11 +145,12 @@ def send_news_digest(articles: list[dict]) -> int:
     if not blocks:
         return 0
 
-    # Başlıq mesajı
-    now = datetime.now(timezone.utc).strftime("%d %B %Y, %H:%M UTC")
+    # Başlıq mesajı (Bakı vaxtı ilə)
+    baku_tz = timezone(timedelta(hours=4))
+    now = datetime.now(baku_tz).strftime("%d %B %Y, %H:%M")
     header = (
         f"🗞 <b>Texnologiya Xəbərləri</b>\n"
-        f"📅 {now}\n"
+        f"📅 {now} (Bakı vaxtı)\n"
         f"📊 {len(articles)} xəbər — {len(blocks)} kateqoriya\n"
         f"{'─' * 30}"
     )

@@ -130,10 +130,16 @@ def send_news_digest(articles: list[dict]) -> int:
     # Onsuz da group olunanda importance sırası ilə gəlməlidir, lakin qaranti verək.
     articles.sort(key=lambda x: x.get("importance", 0), reverse=True)
     
-    # 0, 1, 2, ... deyə ID təyin et (0 = Hook)
-    assign_batch_ids(articles)
-
     grouped = group_by_category(articles)
+
+    # 1, 2, 3... ardıcıllığını vizual (kateqoriya) sırasına uyğunlaşdırmaq üçün
+    list_for_ids = []
+    for key in CATEGORIES:
+        if key in grouped:
+            list_for_ids.extend(grouped[key])
+            
+    # Siyahını yaddaşa köçür və 1, 2, 3... olaraq nömrələ
+    assign_batch_ids(list_for_ids)
 
     # Yalnız xəbər olan kateqoriyaları al
     blocks: list[str] = []

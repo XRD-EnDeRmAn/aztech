@@ -54,15 +54,15 @@ Hər xəbər üçün aşağıdakıları Azerbaycanca ver:
    oyun               → video oyun, konsol, Steam, gaming, esports
    qeyd_etməyə_dəyər  → texnologiya ilə əlaqəli digər maraqlı xəbərlər
 
-2. title_az — başlığı Azerbaycancaya çevir (10-12 söz, təbii axıcı dillə)
+2. title_az — başlığı Azerbaycancaya çevir (tamamilə qısa, 8-10 söz). "Şok sirlər" kimi boş sözlər əlavə etmə!
 
-3. summary_az — 1-2 cümlə Azerbaycanca xülasə (sadə, anlaşıqlı)
+3. summary_az — BU ÇOX ÖNƏMLİDİR: Başlığı (title_az) eyni ilə təkrarlama! Xəbərin MƏZNUNUNDAN ən dəyərli, fərqli detalları çıxarıb 1-2 cümlə ilə xülasə yaz. Başlığın kopyası OLMASIN.
 
 4. importance — 1-10 əhəmiyyət balı:
-   9-10 → Texnologiya dünyasını silkələyən hadisə
-   7-8  → Geniş auditoriyaya təsir edən mühüm xəbər  
-   5-6  → Orta maraq, həvəskarlara maraqlı
-   1-4  → Az əhəmiyyətli, spesifik xəbər
+   9-10 → Dəhşətli dərəcədə önəmli, "Yusuf İpek" bəhs edəcək qədər kritik texnoloji hadisə
+   7-8  → Çox önəmli, ciddi inkişaflar
+   5-6  → Adi xəbərlər
+   1-4  → Tamamilə lüzumsuz, maraqsız, kiçik detal və ya təkrar xəbərlər. Dəyərsiz xəbərlərə mütləq aşağı bal ver!
 
 CAVAB FORMATІ — yalnız düzgün JSON array, heç bir izah əlavə etmə:
 [
@@ -212,12 +212,27 @@ def process_articles(articles: list[dict], model_choice: int = 1) -> list[dict]:
             time.sleep(3)
 
     processed.sort(key=lambda x: x["importance"], reverse=True)
+    
+    # ─── Təkrarların (Duplicatların) Silinməsi ───
+    from difflib import SequenceMatcher
+    final_processed = []
+    
+    for art in processed:
+        is_dup = False
+        for f_art in final_processed:
+            # Əgər Azərbaycan dilindəki başlıqlar 60%-dən çox oxşardırsa eyni xəbər say
+            similarity = SequenceMatcher(None, art["title_az"].lower(), f_art["title_az"].lower()).ratio()
+            if similarity > 0.6:
+                is_dup = True
+                break
+        if not is_dup:
+            final_processed.append(art)
 
     logger.info(
-        "AI emalı tamamlandı: %d/%d xəbər filtrdən keçdi",
-        len(processed), len(articles),
+        "AI emalı tamamlandı: %d orijinal xəbər filtrdən keçdi (Ümumi: %d)",
+        len(final_processed), len(articles),
     )
-    return processed
+    return final_processed
 
 
 def group_by_category(articles: list[dict]) -> dict[str, list[dict]]:

@@ -133,16 +133,16 @@ def process_command(command_type: str, article_info: dict, extra_args: str = "",
         if args_parts and args_parts[0].isdigit():
             seconds = args_parts[0]
 
-        if article_id == "0":
+        if str(article_id) == "1":
             system_prompt = f"""Sən texnoloji YouTube/TikTok kanalının təqdimatçısısan. 
 Bu xəbər MÜTLƏQ HOOK (Videonun ilk diqqət çəkən qarmağı) olmalıdır ({seconds} saniyəlik).
 ŞƏRTLƏR:
-1. Mətnə BİRBAŞA olaraq ən şok edici xəbərlə partlayış edərək, hekayəyə gir. (Məsələn: "Təsəvvür edin ki..." və ya "Discord hacklendi, həm də..." kimi cümlələrlə başla).
+1. Mətnə BİRBAŞA olaraq şok edici xəbərlə partlayış edərək gir. Sözləri qətiyyən əzbərləmə, heç bir xəyali söz qatma, BİRBAŞA xəbərin öz məzmunundakı ən maraqlı yerlə başla.
 2. Girişdə heç bir salamlaşma və ya qarşılama sözlərindən istifadə etmədən, birbaşa hadisəni danışmağa başla.
-3. Çox sürətlə əsas məqamı vurğula, izləyicini həyəcanda saxla. Texniki terminləri sadələşdir.
+3. Çox sürətlə əsas məqamı vurğula, izləyicini həyəcanda saxla. Texniki terminləri səmimi ləhcəyə uyğunlaşdır.
 4. Mətni robot kimi deyil, səmimi Azərbaycan YouTube üslubunda (Məsələn: "Bəs indi nolacaq?") yaz.
 5. Mətnin sonuna (Qeyd, Nota, Xəbərdarlıq kimi) heç bir irad, şərh və ya əlavə söz yazma, sadəcə danışıq mətnini bitir.
-Nəticədə 3-4 cümləlik çox axıcı, "wow" təsiri yaradan kəsintisiz danışıq mətnin olsun. Səhnə, İzah və ya Başlıq kimi alt-tegləri qətiyyən əlavə etmə!
+Nəticədə 3-4 cümləlik çox axıcı, "wow" təsiri yaradan kəsintisiz danışıq mətnin olsun. Əsla heç bir teq istifadə etmə!
 """
         else:
             system_prompt = f"""Sən texnoloji YouTube/TikTok kanalının təqdimatçısısan.

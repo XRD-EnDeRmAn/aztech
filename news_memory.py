@@ -29,17 +29,12 @@ def save_news_map(news_map: dict) -> None:
         logger.error(f"news_map.json yazılarkən xəta: {e}")
 
 def assign_batch_ids(articles: list[dict]) -> None:
-    """Xəbərlərə 0-dan başlayaraq seqvential ID-lər təyin edir və yaddaşa yazır.
-    Siyahıdakı ilk xəbər '0' nömrəsini alır (Əsas Xəbər/Hook).
-    Sonrakılar isə 1, 2, 3... alır, lakin köhnə yaddaşı silməmək üçün 
-    əgər qlobal mapda konflikt varsa id-ləri artırır."""
+    """Xəbərlərə 1-dən başlayaraq seqvential ID-lər təyin edir və yaddaşa yazır.
+    İstifadəçi qarmaq (Hook) üçün 1 ID-sini istifadə edə bilər (Məs. /script 1)."""
     news_map = load_news_map()
     
-    # Yeni axtarış üçün, birbaşa 0, 1, 2... veririk 
-    # Qeyd: Bu yanaşmada hər yeni /tarama etdikdə 0 ID-si ən son xəbərlə əvəzlənəcək.
-    # User-in istəyinə uyğun olaraq bu ən gözəl həlldir. Beləliklə /m 0 həmişə ən son taramanın pikinə düşür.
     for idx, article in enumerate(articles):
-        str_id = str(idx)
+        str_id = str(idx + 1)  # Artıq 0 əvəzinə 1-dən başlayırıq
         news_map[str_id] = {
             "title": article.get("title_az", article.get("title", "")),
             "link": article.get("link", ""),

@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 _client = Groq(api_key=GROQ_API_KEY)
 
 # Batch ölçüsü — bir sorğuda neçə xəbər göndərilsin
-_BATCH_SIZE = 20
+_BATCH_SIZE = 15
 
 
 # ─── Sistem promptu ───────────────────────────────────────────────────────────
@@ -90,33 +90,33 @@ def _call_ai(articles: list[dict], model_choice: int = 1) -> list[dict]:
     """Seçilmiş model və ya pilləli fallback ilə xəbərləri emal edir."""
     user_msg = _build_user_message(articles)
     
-    # Pilləli ierarxiya: 70B (1) -> Gemma 12B (2) -> 8B (3)
-    
+    # Pilləli ierarxiya: 70B (1) -> Gemma 12B (2) -> 8B (3) -> Mistral 7B (4)
     current_choice = model_choice
     
-    # 1. Addım (Model 1: 70B)
+    # OUTPUT ÜÇÜN MAX_TOKENS ENDİRİLDİ (4096 ÇOX İDİ VƏ 6000 TPM LİMİTİNİ POZURDU: Input + 4096 > 6000)
+    MAX_TOK = 2048 
+    
     if current_choice <= 1:
         try:
             completion = _client.chat.completions.with_raw_response.create(
                 model=GROQ_MODEL_1,
                 messages=[{"role": "system", "content": _SYSTEM_PROMPT}, {"role": "user", "content": user_msg}],
                 temperature=0.2,
-                max_tokens=4096,
+                max_tokens=MAX_TOK,
             )
             update_stats("groq_1", completion.headers)
             raw = completion.parse().choices[0].message.content.strip()
             return _extract_json(raw)
         except Exception as e:
             logger.warning(f"Batch Groq 70B xətası: {e}")
-            current_choice = 2 # Nəticə yoxdursa növbətiyə keç
+            current_choice = 2
             
-    # 2. Addım (Model 2: OpenRouter 12B)
     if current_choice == 2:
         if OPENROUTER_API_KEY:
             try:
                 resp = requests.post(
                     url="https://openrouter.ai/api/v1/chat/completions",
-                    headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}", "Content-Type": "application/json", "X-Title": "AzTech Bot"},
+                    headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}", "Content-Type": "application/json", "HTTP-Referer": "https://github.com/XRD-EnDeRmAn/aztech", "X-Title": "AzTech Bot"},
                     json={"model": OPENROUTER_MODEL_2, "messages": [{"role": "system", "content": _SYSTEM_PROMPT}, {"role": "user", "content": user_msg}]},
                     timeout=60
                 )
@@ -124,26 +124,45 @@ def _call_ai(articles: list[dict], model_choice: int = 1) -> list[dict]:
                     update_stats("openrouter_2", resp.headers)
                     raw = resp.json()["choices"][0]["message"]["content"].strip()
                     return _extract_json(raw)
-                logger.warning(f"Batch OpenRouter xətası: {resp.status_code}")
+                logger.warning(f"Batch OpenRouter (12B) xətası: {resp.status_code}")
             except Exception as e:
-                logger.warning(f"Batch OpenRouter istisna: {e}")
-        current_choice = 3 # Nəticə yoxdursa növbətiyə keç
+                logger.warning(f"Batch OpenRouter (12B) istisna: {e}")
+        current_choice = 3
 
-    # 3. Addım (Model 3: Groq 8B)
-    if current_choice >= 3:
+    if current_choice == 3:
         try:
             completion = _client.chat.completions.with_raw_response.create(
                 model=GROQ_MODEL_3,
                 messages=[{"role": "system", "content": _SYSTEM_PROMPT}, {"role": "user", "content": user_msg}],
                 temperature=0.2,
-                max_tokens=4096,
+                max_tokens=MAX_TOK,
             )
             update_stats("groq_3", completion.headers)
             raw = completion.parse().choices[0].message.content.strip()
             return _extract_json(raw)
         except Exception as e:
-            logger.error(f"Batch Groq 8B xətası: {e}")
-            
+            logger.warning(f"Batch Groq 8B xətası: {e}")
+            current_choice = 4
+
+    if current_choice >= 4:
+        if OPENROUTER_API_KEY:
+            try:
+                from config import OPENROUTER_MODEL_4
+                resp = requests.post(
+                    url="https://openrouter.ai/api/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}", "Content-Type": "application/json", "HTTP-Referer": "https://github.com/XRD-EnDeRmAn/aztech", "X-Title": "AzTech Bot"},
+                    json={"model": OPENROUTER_MODEL_4, "messages": [{"role": "system", "content": _SYSTEM_PROMPT}, {"role": "user", "content": user_msg}]},
+                    timeout=60
+                )
+                if resp.status_code == 200:
+                    update_stats("openrouter_4", resp.headers)
+                    raw = resp.json()["choices"][0]["message"]["content"].strip()
+                    return _extract_json(raw)
+                logger.error(f"Batch OpenRouter (Mistral 7B) xətası: {resp.status_code}")
+            except Exception as e:
+                logger.error(f"Batch OpenRouter (Mistral 7B) istisna: {e}")
+                
+    logger.error("🚫 API Limitlərinin 4-ü də tükəndi!")
     return []
 
 def _extract_json(text: str) -> list[dict]:
@@ -206,10 +225,10 @@ def process_articles(articles: list[dict], model_choice: int = 1) -> list[dict]:
                 "published":      original.get("published"),
             })
 
-        # Batch-lər arası gözlə (rate limit: dəqiqədə 30 sorğu)
+        # Batch-lər arası gözlə (6000 TPM limitini qorumaq üçün yavaşlat)
         if batch_start + _BATCH_SIZE < len(articles):
-            logger.debug("Növbəti batch üçün 3s gözlənilir...")
-            time.sleep(3)
+            logger.debug("Növbəti batch üçün 15s gözlənilir (TPM limiti qorunur)...")
+            time.sleep(15)
 
     processed.sort(key=lambda x: x["importance"], reverse=True)
     

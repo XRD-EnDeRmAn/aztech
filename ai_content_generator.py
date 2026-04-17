@@ -3,6 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 from groq import Groq
 
+from config import GROQ_API_KEY, GROQ_MODEL, OPENROUTER_API_KEY
 from usage_memory import update_stats
 
 logger = logging.getLogger(__name__)

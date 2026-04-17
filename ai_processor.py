@@ -103,7 +103,7 @@ def _call_ai(articles: list[dict], model_choice: int = 1) -> list[dict]:
                 temperature=0.2,
                 max_tokens=4096,
             )
-            update_stats("groq", completion.headers)
+            update_stats("groq_1", completion.headers)
             raw = completion.parse().choices[0].message.content.strip()
             return _extract_json(raw)
         except Exception as e:
@@ -121,7 +121,7 @@ def _call_ai(articles: list[dict], model_choice: int = 1) -> list[dict]:
                     timeout=60
                 )
                 if resp.status_code == 200:
-                    update_stats("openrouter", resp.headers)
+                    update_stats("openrouter_2", resp.headers)
                     raw = resp.json()["choices"][0]["message"]["content"].strip()
                     return _extract_json(raw)
                 logger.warning(f"Batch OpenRouter xətası: {resp.status_code}")
@@ -138,7 +138,7 @@ def _call_ai(articles: list[dict], model_choice: int = 1) -> list[dict]:
                 temperature=0.2,
                 max_tokens=4096,
             )
-            update_stats("groq", completion.headers)
+            update_stats("groq_3", completion.headers)
             raw = completion.parse().choices[0].message.content.strip()
             return _extract_json(raw)
         except Exception as e:

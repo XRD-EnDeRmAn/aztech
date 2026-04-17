@@ -114,17 +114,23 @@ def handle_limit_command():
     text = f"""
 📊 <b>API Canlı Limit Vəziyyəti</b>
 
-🟢 <b>Groq AI (Əsas)</b>
-- <b>Qalan Sorğu:</b> {s['groq']['remaining_req']}
-- <b>Qalan Token:</b> {s['groq']['remaining_tokens']}
-- <b>Sıfırlanma vaxtı:</b> {s['groq']['reset_in']}
-- <b>Son yenilənmə:</b> {s['groq']['last_update']}
+1️⃣ <b>Model 1 (Llama 70B - Groq)</b>
+- Qalan Sorğu: {s.get('groq_1', {}).get('remaining_req', 'N/A')}
+- Qalan Token: {s.get('groq_1', {}).get('remaining_tokens', 'N/A')}
+- Sıfırlanma: {s.get('groq_1', {}).get('reset_in', 'N/A')}
+- Yenilənmə: {s.get('groq_1', {}).get('last_update', 'N/A')}
 
-🟡 <b>OpenRouter (Ehtiyat)</b>
-- <b>Status:</b> {s['openrouter']['status']}
-- <b>Son yenilənmə:</b> {s['openrouter']['last_update']}
+2️⃣ <b>Model 2 (Gemma 12B - OpenRouter)</b>
+- Status: {s.get('openrouter_2', {}).get('status', 'Məlumat yoxdur')}
+- Yenilənmə: {s.get('openrouter_2', {}).get('last_update', 'N/A')}
 
-<i>* Məlumat: Bu rəqəmlər hər uğurlu AI müraciətindən sonra avtomatik yenilənir. Əgər hər iki servis sıfıra düşərsə, bot xəta verəcək.</i>
+3️⃣ <b>Model 3 (Llama 8B - Groq)</b>
+- Qalan Sorğu: {s.get('groq_3', {}).get('remaining_req', 'N/A')}
+- Qalan Token: {s.get('groq_3', {}).get('remaining_tokens', 'N/A')}
+- Sıfırlanma: {s.get('groq_3', {}).get('reset_in', 'N/A')}
+- Yenilənmə: {s.get('groq_3', {}).get('last_update', 'N/A')}
+
+<i>* Qeyd: "N/A" yazanlar o deməkdir ki, bot fəaliyyətə başlayandan bəri o model hələ işlədilməyib. Limitləri görmək üçün hər modelə bir test əmri göndərə bilərsiniz.</i>
 """
     _send_message(text)
 

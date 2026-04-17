@@ -35,7 +35,7 @@ def fetch_article_text(url: str) -> str:
         logger.error(f"Failed to fetch article text from {url}: {e}")
         return ""
 
-def _try_groq(model: str, system_prompt: str, user_prompt: str) -> str:
+def _try_groq(model: str, system_prompt: str, user_prompt: str, provider_key: str) -> str:
     """Daxili Groq müraciəti."""
     if not groq_client: return None
     try:
@@ -48,13 +48,13 @@ def _try_groq(model: str, system_prompt: str, user_prompt: str) -> str:
             temperature=0.7,
             max_tokens=4096,
         )
-        update_stats("groq", completion.headers)
+        update_stats(provider_key, completion.headers)
         return completion.parse().choices[0].message.content.strip()
     except Exception as e:
         logger.warning(f"Groq ({model}) xətası: {e}")
         return None
 
-def _try_openrouter(model: str, system_prompt: str, user_prompt: str) -> str:
+def _try_openrouter(model: str, system_prompt: str, user_prompt: str, provider_key: str) -> str:
     """Daxili OpenRouter müraciəti."""
     if not OPENROUTER_API_KEY: return None
     try:
@@ -75,7 +75,7 @@ def _try_openrouter(model: str, system_prompt: str, user_prompt: str) -> str:
             timeout=45
         )
         if resp.status_code == 200:
-            update_stats("openrouter", resp.headers)
+            update_stats(provider_key, resp.headers)
             return resp.json()["choices"][0]["message"]["content"].strip()
         logger.warning(f"OpenRouter ({model}) xətası: {resp.status_code}")
         return None
@@ -94,17 +94,17 @@ def generate_with_fallback(system_prompt: str, user_prompt: str, model_choice: i
     
     # Əgər seçim 1-dirsə (və ya yoxdursa) ardıcıllıqla yoxla
     if model_choice <= 1:
-        res = _try_groq(GROQ_MODEL_1, system_prompt, user_prompt)
+        res = _try_groq(GROQ_MODEL_1, system_prompt, user_prompt, "groq_1")
         if res: return res
         model_choice = 2 # Əgər alınmasa növbətiyə keç
 
     if model_choice == 2:
-        res = _try_openrouter(OPENROUTER_MODEL_2, system_prompt, user_prompt)
+        res = _try_openrouter(OPENROUTER_MODEL_2, system_prompt, user_prompt, "openrouter_2")
         if res: return res
         model_choice = 3 # Əgər alınmasa növbətiyə keç
 
     if model_choice >= 3:
-        res = _try_groq(GROQ_MODEL_3, system_prompt, user_prompt)
+        res = _try_groq(GROQ_MODEL_3, system_prompt, user_prompt, "groq_3")
         if res: return res
 
     return "❌ Bütün API limitləri tükəndi. Lütfən bir qədər sonra yenidən yoxlayın."

@@ -9,17 +9,17 @@ def update_stats(provider: str, headers: dict):
     """API cavablarından limit məlumatlarını çıxarır və saxlayır."""
     stats = load_stats()
     
-    if provider == "groq":
+    if provider.startswith("groq"):
         # Groq headers: x-ratelimit-remaining-requests, x-ratelimit-remaining-tokens, x-ratelimit-reset-requests
-        stats["groq"] = {
+        stats[provider] = {
             "remaining_req": headers.get("x-ratelimit-remaining-requests", "N/A"),
             "remaining_tokens": headers.get("x-ratelimit-remaining-tokens", "N/A"),
             "reset_in": headers.get("x-ratelimit-reset-requests", "N/A"),
             "last_update": headers.get("date", "N/A")
         }
-    elif provider == "openrouter":
+    elif provider.startswith("openrouter"):
         # OpenRouter genis melumat vermir free tier-de, ancaq ugurlu call sayir
-        stats["openrouter"] = {
+        stats[provider] = {
             "status": "Aktiv (Son call uğurlu)",
             "last_update": headers.get("date", "N/A")
         }
@@ -35,10 +35,16 @@ def load_stats() -> dict:
     if os.path.exists(STATS_FILE):
         try:
             with open(STATS_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+                # Keçid prosesi: köhnə 'groq' açarını 'groq_1' olaraq yeniləyək
+                if "groq" in data:
+                    data = {} # Sıfırlayaq ki qarışıqlıq olmasın
+                else:
+                    return data
         except:
             pass
     return {
-        "groq": {"remaining_req": "N/A", "remaining_tokens": "N/A", "reset_in": "N/A", "last_update": "N/A"},
-        "openrouter": {"status": "Məlumat yoxdur", "last_update": "N/A"}
+        "groq_1": {"remaining_req": "N/A", "remaining_tokens": "N/A", "reset_in": "N/A", "last_update": "N/A"},
+        "openrouter_2": {"status": "Məlumat yoxdur", "last_update": "N/A"},
+        "groq_3": {"remaining_req": "N/A", "remaining_tokens": "N/A", "reset_in": "N/A", "last_update": "N/A"}
     }

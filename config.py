@@ -13,8 +13,17 @@ TELEGRAM_CHAT_ID: str   = os.getenv("TELEGRAM_CHAT_ID", "")
 # ─── Groq və OpenRouter AI ──────────────────────────────────────
 GROQ_API_KEY: str  = os.getenv("GROQ_API_KEY", "")
 OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "")
-# llama-3.3-70b-versatile: güclü, pulsuz, qlobal
-GROQ_MODEL: str    = "llama-3.3-70b-versatile"
+
+# Modellər ierarxiyası:
+# 1) Llama 3.3 70B (Ən ağıllı, kiçik limit)
+# 2) Gemma 3 12B (Orta ağıllı, OpenRouter)
+# 3) Llama 3.1 8B (Sürətli, böyük limit)
+GROQ_MODEL_1: str    = "llama-3.3-70b-versatile"
+OPENROUTER_MODEL_2: str = "google/gemma-3-12b-it:free"
+GROQ_MODEL_3: str    = "llama-3.1-8b-instant"
+
+# Default olaraq hansından başladılsın (1-ci model)
+GROQ_MODEL: str = GROQ_MODEL_1
 
 # ─── Scheduler ───────────────────────────────────────────────
 SCAN_INTERVAL_HOURS: int = int(os.getenv("SCAN_INTERVAL_HOURS", "6"))

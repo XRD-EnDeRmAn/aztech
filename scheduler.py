@@ -13,14 +13,14 @@ from config import SCAN_INTERVAL_HOURS
 logger = logging.getLogger(__name__)
 
 
-def run_scan() -> None:
+def run_scan(model_choice: int = 1) -> None:
     """Bir tarama dövrü: RSS → AI → Telegram."""
     from rss_reader  import fetch_new_articles
     from ai_processor import process_articles
     from telegram_bot import send_news_digest, send_error_alert
 
     logger.info("═" * 50)
-    logger.info("Tarama başladı...")
+    logger.info("Tarama başladı (Seçim: %d)...", model_choice)
 
     try:
         # 1) Yeni xəbərləri yığ
@@ -30,7 +30,7 @@ def run_scan() -> None:
             return
 
         # 2) AI ilə emal et (kateqorizasiya + Azerbaycancaya çevir)
-        processed = process_articles(articles)
+        processed = process_articles(articles, model_choice)
         if not processed:
             logger.info("Filtrdən keçən xəbər yoxdur.")
             return

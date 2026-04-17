@@ -33,19 +33,19 @@ app = Flask(__name__)
 
 _is_scanning = False
 
-def _do_scan():
+def _do_scan(model_choice: int = 1):
     """Arxa planda tarama aparır."""
     global _is_scanning
     _is_scanning = True
     try:
         from scheduler import run_scan
-        run_scan()
+        run_scan(model_choice)
     except Exception as e:
         logger.error("Tarama xətası: %s", e)
     finally:
         _is_scanning = False
 
-def _trigger_scan(chat_id=None):
+def _trigger_scan(chat_id=None, model_choice: int = 1):
     """Tarama artıq gedirmi yoxlayır, getmirsə başladır."""
     global _is_scanning
     
@@ -55,9 +55,10 @@ def _trigger_scan(chat_id=None):
             _send_message("⏳ Tarama artıq gedir, bir az gözləyin...")
             return False
         else:
-            _send_message("🚀 Bot oyandı! Tarama başladı. Təxminən 2-3 dəqiqəyə xəbərlər gələcək...")
+            model_name = "Model 1 (70B)" if model_choice == 1 else ("Model 2 (12B)" if model_choice == 2 else "Model 3 (8B)")
+            _send_message(f"🚀 Bot oyandı! Tarama başladı ({model_name}). Təxminən 2-3 dəqiqəyə xəbərlər gələcək...")
 
-    t = threading.Thread(target=_do_scan, daemon=True)
+    t = threading.Thread(target=_do_scan, args=(model_choice,), daemon=True)
     t.start()
     return True
 
@@ -69,7 +70,20 @@ def handle_article_command(command: str, args: list, chat_id: int):
         return
         
     article_id = args[0]
-    extra_args = args[1] if len(args) > 1 else ""
+    
+    # Model seçimini yoxlayaq (arqumentlərin sonunda 1, 2 və ya 3 ola bilər)
+    # Örnək: /script 0 120 2 (id=0, extra=120, choice=2)
+    # Örnək: /script 0 2 (id=0, choice=2)
+    model_choice = 1 # default
+    extra_args = ""
+    
+    if len(args) > 1:
+        # Sonuncu arqument 1, 2 və ya 3-dürsə model seçimidir
+        if args[-1] in ["1", "2", "3"]:
+            model_choice = int(args[-1])
+            extra_args = " ".join(args[1:-1])
+        else:
+            extra_args = " ".join(args[1:])
     
     news_map = load_news_map()
     if article_id not in news_map:
@@ -77,11 +91,12 @@ def handle_article_command(command: str, args: list, chat_id: int):
         return
         
     article_info = news_map[article_id]
-    _send_message(f"⏳ [{article_id}] nömrəli xəbər üçün məzmun yaradılır, lütfən bir qədər gözləyin...")
+    model_name = "Model 1 (70B)" if model_choice == 1 else ("Model 2 (12B)" if model_choice == 2 else "Model 3 (8B)")
+    _send_message(f"⏳ [{article_id}] nömrəli xəbər yaradılır ({model_name})...")
     
     # AI Process uzun cəkə bilər deyə background thread-də işlədək ki, Webhook timeout olmasın
     def process_and_send():
-        result = process_command(command, article_info, extra_args, article_id)
+        result = process_command(command, article_info, extra_args, article_id, model_choice)
         # Mesaj uzun ola bilər, əgər 4000 limitini aşarsa
         if len(result) > 4000:
             for i in range(0, len(result), 4000):
@@ -144,9 +159,13 @@ def webhook():
         command = parts[0]
         args = parts[1:]
         
-        if command in ["/start", "/tarama"]:
-            logger.info("Telegram-dan /tarama əmri gəldi!")
-            _trigger_scan(chat_id=chat_id)
+        if command in ["/start", "/tarama", "/tarama1", "/tarama2", "/tarama3"]:
+            model_choice = 1
+            if command == "/tarama2": model_choice = 2
+            elif command == "/tarama3": model_choice = 3
+            
+            logger.info(f"Telegram-dan {command} əmri gəldi (Seçim: {model_choice})")
+            _trigger_scan(chat_id=chat_id, model_choice=model_choice)
             
         elif command in ["/m", "/script", "/short", "/deep"]:
             # URL format `/m` komandasını `script` kimi emal etdirək

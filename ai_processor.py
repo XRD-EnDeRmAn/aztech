@@ -17,10 +17,17 @@ from groq import Groq
 
 from config import (
     GROQ_API_KEY,
-    GROQ_MODEL,
+    GROQ_MODEL_1,
+    GROQ_MODEL_3,
+    OPENROUTER_API_KEY,
+    OPENROUTER_MODEL_2,
     CATEGORIES,
     MIN_IMPORTANCE_SCORE,
 )
+import requests
+
+# usage_memory-ni də daxil edək ki limitləri izləyək
+from usage_memory import update_stats
 
 logger = logging.getLogger(__name__)
 
@@ -79,45 +86,82 @@ def _build_user_message(articles: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def _call_groq(articles: list[dict], attempt: int = 0) -> list[dict]:
-    """Groq-a bir batch göndər, JSON cavab al."""
+def _call_ai(articles: list[dict], model_choice: int = 1) -> list[dict]:
+    """Seçilmiş model və ya pilləli fallback ilə xəbərləri emal edir."""
     user_msg = _build_user_message(articles)
+    
+    # Pilləli ierarxiya: 70B (1) -> Gemma 12B (2) -> 8B (3)
+    
+    current_choice = model_choice
+    
+    # 1. Addım (Model 1: 70B)
+    if current_choice <= 1:
+        try:
+            completion = _client.chat.completions.with_raw_response.create(
+                model=GROQ_MODEL_1,
+                messages=[{"role": "system", "content": _SYSTEM_PROMPT}, {"role": "user", "content": user_msg}],
+                temperature=0.2,
+                max_tokens=4096,
+            )
+            update_stats("groq", completion.headers)
+            raw = completion.parse().choices[0].message.content.strip()
+            return _extract_json(raw)
+        except Exception as e:
+            logger.warning(f"Batch Groq 70B xətası: {e}")
+            current_choice = 2 # Nəticə yoxdursa növbətiyə keç
+            
+    # 2. Addım (Model 2: OpenRouter 12B)
+    if current_choice == 2:
+        if OPENROUTER_API_KEY:
+            try:
+                resp = requests.post(
+                    url="https://openrouter.ai/api/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}", "Content-Type": "application/json", "X-Title": "AzTech Bot"},
+                    json={"model": OPENROUTER_MODEL_2, "messages": [{"role": "system", "content": _SYSTEM_PROMPT}, {"role": "user", "content": user_msg}]},
+                    timeout=60
+                )
+                if resp.status_code == 200:
+                    update_stats("openrouter", resp.headers)
+                    raw = resp.json()["choices"][0]["message"]["content"].strip()
+                    return _extract_json(raw)
+                logger.warning(f"Batch OpenRouter xətası: {resp.status_code}")
+            except Exception as e:
+                logger.warning(f"Batch OpenRouter istisna: {e}")
+        current_choice = 3 # Nəticə yoxdursa növbətiyə keç
 
+    # 3. Addım (Model 3: Groq 8B)
+    if current_choice >= 3:
+        try:
+            completion = _client.chat.completions.with_raw_response.create(
+                model=GROQ_MODEL_3,
+                messages=[{"role": "system", "content": _SYSTEM_PROMPT}, {"role": "user", "content": user_msg}],
+                temperature=0.2,
+                max_tokens=4096,
+            )
+            update_stats("groq", completion.headers)
+            raw = completion.parse().choices[0].message.content.strip()
+            return _extract_json(raw)
+        except Exception as e:
+            logger.error(f"Batch Groq 8B xətası: {e}")
+            
+    return []
+
+def _extract_json(text: str) -> list[dict]:
+    """Mətndən JSON array-i çıxarır."""
     try:
-        response = _client.chat.completions.create(
-            model=GROQ_MODEL,
-            messages=[
-                {"role": "system", "content": _SYSTEM_PROMPT},
-                {"role": "user",   "content": user_msg},
-            ],
-            temperature=0.2,
-            max_tokens=4096,
-        )
-        raw = response.choices[0].message.content.strip()
-
-        # JSON hissəsini çıxar (markdown code block-u kənar et)
-        json_match = re.search(r"\[.*\]", raw, re.DOTALL)
+        json_match = re.search(r"\[.*\]", text, re.DOTALL)
         if not json_match:
-            raise ValueError(f"JSON tapılmadı. Cavab: {raw[:200]}")
-
-        results = json.loads(json_match.group())
-        return results
-
-    except Exception as exc:
-        logger.error("Groq xəta (cəhd %d): %s", attempt + 1, exc)
-        if attempt < 2:
-            wait = 15 * (attempt + 1)
-            logger.info("%ds gözlənilir, yenidən cəhd edilir...", wait)
-            time.sleep(wait)
-            return _call_groq(articles, attempt + 1)
+            return []
+        return json.loads(json_match.group())
+    except:
         return []
 
 
 # ─── Əsas funksiya ────────────────────────────────────────────────────────────
 
-def process_articles(articles: list[dict]) -> list[dict]:
+def process_articles(articles: list[dict], model_choice: int = 1) -> list[dict]:
     """
-    Bütün xəbərləri batch ilə Groq-a göndər,
+    Bütün xəbərləri batch ilə AI-a göndər,
     kateqoriyalanmış + Azerbaycanca xəbərlər siyahısı qaytar.
     """
     if not articles:
@@ -128,11 +172,11 @@ def process_articles(articles: list[dict]) -> list[dict]:
     for batch_start in range(0, len(articles), _BATCH_SIZE):
         batch = articles[batch_start: batch_start + _BATCH_SIZE]
         logger.info(
-            "Groq batch göndərilir: %d xəbər (indeks %d-%d)",
-            len(batch), batch_start, batch_start + len(batch) - 1,
+            "AI batch göndərilir (Seçim: %d): %d xəbər (indeks %d-%d)",
+            model_choice, len(batch), batch_start, batch_start + len(batch) - 1,
         )
 
-        ai_results = _call_groq(batch)
+        ai_results = _call_ai(batch, model_choice)
 
         for res in ai_results:
             idx = res.get("index", -1)

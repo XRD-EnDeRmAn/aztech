@@ -21,7 +21,7 @@ SCAN_INTERVAL_HOURS: int = int(os.getenv("SCAN_INTERVAL_HOURS", "6"))
 
 # ─── Filtr ───────────────────────────────────────────────────
 MIN_IMPORTANCE_SCORE: int = int(os.getenv("MIN_IMPORTANCE_SCORE", "6"))
-MAX_ARTICLES_PER_RUN: int = int(os.getenv("MAX_ARTICLES_PER_RUN", "40"))
+MAX_ARTICLES_PER_RUN: int = int(os.getenv("MAX_ARTICLES_PER_RUN", "100"))
 
 # ─── Kateqoriyalar (Azerbaycanca) ───────────────────────────
 CATEGORIES = {

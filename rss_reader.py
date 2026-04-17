@@ -22,9 +22,10 @@ from feeds import RSS_FEEDS
 logger = logging.getLogger(__name__)
 
 # Geri baxış pəncərəsi:
-# Scan intervalı + 2 saat buffer, maksimum 24 saat
-# Beləcə köhnə xəbərlər qətiyyən daxil olmur
-HOURS_LOOKBACK = min(SCAN_INTERVAL_HOURS + 2, 24)
+# İstifadəçi botu istədiyi vaxt (istərsə gündə 1 dəfə) işlətdiyi üçün 
+# həmişə son 24 saata baxırıq. Onsuz da oxunanlar seen_news.json-da olacağından
+# dublikat gəlməyəcək və heç bir vacib xəbər qaçırılmayacaq.
+HOURS_LOOKBACK = 24
 
 
 # ─── Seen news yüklə / saxla ──────────────────────────────────────────────────

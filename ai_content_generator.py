@@ -96,12 +96,19 @@ def process_command(command_type: str, article_info: dict, extra_args: str = "")
         if extra_args.isdigit():
             seconds = extra_args
             
-        system_prompt = f"""Sən peşəkar video məzmun yaradıcısan. Bu xəbər əsasında Youtube/TikTok vizual videosu üçün {seconds} saniyəlik Azərbaycan dilində cəlbedici danışıq mətni hazırla. 
+        system_prompt = f"""Sən peşəkar video məzmun yaradıcısan. Bu xəbər əsasında Youtube/TikTok vizual videosu üçün {seconds} saniyəlik Azərbaycan dilində cəlbedici danışıq mətni (ssenari) hazırla. 
+MÜHÜM ŞƏRT — Danışıq üslubun aşağıdakı xüsusiyyətlərə tam uyğun olmalıdır:
+- Təbii, axıcı və səmimi bir "tech-YouTuber" kimi danış ("Texnologiya raporunun yeni bölümünə xoş gəldiniz" tipli girişlər ola bilər).
+- Xəbəri sadəcə quru oxuma; xəbərin arxa planını, "bilməyənlər üçün xatırladaq" kimi ifadələrlə qısa məzmununu ver.
+- Öz şəxsi, məntiqli analizini və "mənə qalsa", "bəncə", "açığı məni təəccübləndirdi" kimi rəylərini qat.
+- Böyük şirkətlərin (Big Tech) və ya sistemlərin atdığı addımlara bir az tənqidi, oxuyucunu düşündürən bir tərzlə yanaş. ("Yəni bunun axırı hara gedir" tərzində).
+- Keçidləri axıcı et ("İndi gəlin süni intellekt tərəfindəki xəbərə keçək", "Burada ilginç bir detal var" və s.).
+
 Format:
 - 📌 Əsas hadisənin qısa izahı
 - 💡 Vacib faktlar və detallar
-- 🎙️ Videoda istifadə üçün hazır danışıq mətni (Mətn hissələrə bölünmüş olsun, yəni [Səhnə 1], [Səhnə 2] kimi qur).
-Nəticə qısa və səlis Azərbaycan dilində olmalıdır.
+- 🎙️ Videoda istifadə üçün tam Youtuber üslubunda danışıq mətni (Mətn [Səhnə 1], [Səhnə 2] kimi hissələrə bölünmüş olsun).
+Nəticə təbii, qüsursuz və səlis Azərbaycan dilində (Azərbaycan ləhcəsində) olmalıdır.
 """
     elif command_type == "short":
         system_prompt = """Sən sosial media menecerisən. Verilmiş xəbər üçün diqqət çəkən Instagram/Telegram postu hazırla. 
